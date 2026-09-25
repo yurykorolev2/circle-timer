@@ -1,4 +1,4 @@
-// Единственный рабочий массив: исходные записи загружаются в него из exercises.json.
+// Единственный рабочий массив: данные восстанавливаются из браузера или exercises.json.
 const exercises = [];
 
 const elements = {
@@ -42,6 +42,7 @@ const elements = {
 
 const TICK_RATE = 100;
 const TRANSITION_SOUND_LEAD = 300;
+const EXERCISES_STORAGE_KEY = "circle-timer.exercises.v1";
 
 function calculateTotalWorkoutTime() {
   return exercises.reduce(
@@ -102,31 +103,82 @@ function normalizeExercise(record, index) {
   };
 }
 
+function normalizeExerciseList(source, sourceName) {
+  if (!Array.isArray(source) || source.length === 0) {
+    throw new Error(`${sourceName} должен содержать непустой массив`);
+  }
+
+  const normalizedExercises = source.map(normalizeExercise);
+  const uniqueIds = new Set(normalizedExercises.map((exercise) => exercise.id));
+
+  if (uniqueIds.size !== normalizedExercises.length) {
+    throw new Error(`Все id в ${sourceName} должны быть уникальными`);
+  }
+
+  return normalizedExercises;
+}
+
+function loadSavedExercises() {
+  try {
+    const savedExercises = globalThis.localStorage.getItem(EXERCISES_STORAGE_KEY);
+
+    if (savedExercises === null) {
+      return null;
+    }
+
+    return normalizeExerciseList(JSON.parse(savedExercises), "сохранённых данных");
+  } catch (error) {
+    console.warn("Не удалось восстановить сохранённые упражнения", error);
+
+    try {
+      globalThis.localStorage.removeItem(EXERCISES_STORAGE_KEY);
+    } catch {
+      // Хранилище может быть недоступно в приватном режиме браузера.
+    }
+
+    return null;
+  }
+}
+
+function persistExercises() {
+  try {
+    globalThis.localStorage.setItem(EXERCISES_STORAGE_KEY, JSON.stringify(exercises));
+  } catch (error) {
+    console.warn("Не удалось сохранить упражнения", error);
+  }
+}
+
+function applyExerciseList(exerciseList) {
+  exercises.splice(0, exercises.length, ...exerciseList);
+  totalWorkoutDuration = calculateTotalWorkoutTime();
+  phaseTimeLeft = exercises[0].duration * 1000;
+  totalTimeLeft = totalWorkoutDuration;
+}
+
+function syncExercisesFromStorage() {
+  const savedExercises = loadSavedExercises();
+
+  if (savedExercises !== null) {
+    applyExerciseList(savedExercises);
+  }
+}
+
 async function loadExercises() {
   try {
-    const response = await fetch("exercises.json");
+    let loadedExercises = loadSavedExercises();
 
-    if (!response.ok) {
-      throw new Error(`Ошибка загрузки: ${response.status}`);
+    if (loadedExercises === null) {
+      const response = await fetch("exercises.json");
+
+      if (!response.ok) {
+        throw new Error(`Ошибка загрузки: ${response.status}`);
+      }
+
+      loadedExercises = normalizeExerciseList(await response.json(), "exercises.json");
     }
 
-    const source = await response.json();
-
-    if (!Array.isArray(source) || source.length === 0) {
-      throw new Error("exercises.json должен содержать непустой массив");
-    }
-
-    const loadedExercises = source.map(normalizeExercise);
-    const uniqueIds = new Set(loadedExercises.map((exercise) => exercise.id));
-
-    if (uniqueIds.size !== loadedExercises.length) {
-      throw new Error("Все id в exercises.json должны быть уникальными");
-    }
-
-    exercises.splice(0, exercises.length, ...loadedExercises);
-    totalWorkoutDuration = calculateTotalWorkoutTime();
-    phaseTimeLeft = exercises[0].duration * 1000;
-    totalTimeLeft = totalWorkoutDuration;
+    applyExerciseList(loadedExercises);
+    persistExercises();
     elements.startButton.disabled = false;
     elements.addExerciseButton.disabled = false;
     renderSetup();
@@ -375,6 +427,7 @@ function saveExercise(event) {
     exercises[editingExerciseIndex] = exercise;
   }
 
+  persistExercises();
   totalWorkoutDuration = calculateTotalWorkoutTime();
   phaseTimeLeft = exercises[0].duration * 1000;
   totalTimeLeft = totalWorkoutDuration;
@@ -395,6 +448,7 @@ function deleteExercise() {
   }
 
   exercises.splice(editingExerciseIndex, 1);
+  persistExercises();
   totalWorkoutDuration = calculateTotalWorkoutTime();
   phaseTimeLeft = exercises[0].duration * 1000;
   totalTimeLeft = totalWorkoutDuration;
@@ -568,6 +622,7 @@ function resetWorkout() {
 }
 
 function startWorkout() {
+  syncExercisesFromStorage();
   resetWorkout();
   showView(elements.workoutView);
 }
