@@ -60,7 +60,17 @@
         <div class="setup-controls">
           <div class="exercise-list-panel">
             <div class="exercise-list-toolbar">
-              <h2>Упражнения</h2>
+              <div class="exercise-list-title">
+                <h2>Упражнения</h2>
+                <button
+                  class="reset-exercises-button"
+                  id="reset-exercises-button"
+                  type="button"
+                  aria-label="Восстановить упражнения по умолчанию"
+                  title="Восстановить по умолчанию"
+                  disabled
+                >↺</button>
+              </div>
               <button class="button button--secondary add-exercise-button" id="add-exercise-button" type="button" disabled>
                 <span aria-hidden="true">+</span> Добавить
               </button>
@@ -197,6 +207,21 @@
           </button>
         </div>
       </form>
+    </dialog>
+
+    <dialog class="exercise-dialog reset-dialog" id="reset-dialog" aria-labelledby="reset-dialog-title">
+      <div class="reset-dialog__content">
+        <h2 id="reset-dialog-title">Восстановить исходный набор?</h2>
+        <p>Текущий список и все внесённые изменения будут заменены авторским набором.</p>
+        <div class="reset-dialog__actions">
+          <button class="button button--secondary" id="reset-dialog-cancel" type="button">
+            Отмена
+          </button>
+          <button class="button button--primary" id="reset-dialog-confirm" type="button">
+            Да, восстановить
+          </button>
+        </div>
+      </div>
     </dialog>
 
     <audio id="transition-sound" src="assets/transition-ding.mp3" preload="auto" hidden></audio>

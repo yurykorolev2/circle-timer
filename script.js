@@ -8,6 +8,10 @@ const elements = {
   exerciseList: document.querySelector("#exercise-list"),
   routineLabel: document.querySelector("#routine-label"),
   addExerciseButton: document.querySelector("#add-exercise-button"),
+  resetExercisesButton: document.querySelector("#reset-exercises-button"),
+  resetDialog: document.querySelector("#reset-dialog"),
+  resetDialogCancel: document.querySelector("#reset-dialog-cancel"),
+  resetDialogConfirm: document.querySelector("#reset-dialog-confirm"),
   exerciseDialog: document.querySelector("#exercise-dialog"),
   exerciseDialogTitle: document.querySelector("#exercise-dialog-title"),
   exerciseDialogClose: document.querySelector("#exercise-dialog-close"),
@@ -199,24 +203,29 @@ function syncExercisesFromStorage() {
   }
 }
 
+async function fetchDefaultExercises() {
+  const response = await fetch("exercises.json", { cache: "no-store" });
+
+  if (!response.ok) {
+    throw new Error(`Ошибка загрузки: ${response.status}`);
+  }
+
+  return normalizeExerciseList(await response.json(), "exercises.json");
+}
+
 async function loadExercises() {
   try {
     let loadedExercises = loadSavedExercises();
 
     if (loadedExercises === null) {
-      const response = await fetch("exercises.json");
-
-      if (!response.ok) {
-        throw new Error(`Ошибка загрузки: ${response.status}`);
-      }
-
-      loadedExercises = normalizeExerciseList(await response.json(), "exercises.json");
+      loadedExercises = await fetchDefaultExercises();
     }
 
     applyExerciseList(loadedExercises);
     persistExercises();
     elements.startButton.disabled = false;
     elements.addExerciseButton.disabled = false;
+    elements.resetExercisesButton.disabled = false;
     renderSetup();
   } catch (error) {
     console.error(error);
@@ -414,6 +423,32 @@ function openExerciseDialog(index = null) {
 
 function closeExerciseDialog() {
   elements.exerciseDialog.close();
+}
+
+function openResetDialog() {
+  elements.resetDialog.showModal();
+  elements.resetDialogCancel.focus();
+}
+
+function closeResetDialog() {
+  elements.resetDialog.close();
+}
+
+async function restoreDefaultExercises() {
+  elements.resetDialogConfirm.disabled = true;
+
+  try {
+    const defaultExercises = await fetchDefaultExercises();
+    applyExerciseList(defaultExercises);
+    persistExercises();
+    renderSetup();
+    closeResetDialog();
+  } catch (error) {
+    console.error(error);
+    globalThis.alert("Не удалось восстановить упражнения. Попробуйте ещё раз.");
+  } finally {
+    elements.resetDialogConfirm.disabled = false;
+  }
 }
 
 function saveExercise(event) {
@@ -737,6 +772,9 @@ elements.workoutInfoButton.addEventListener("click", toggleWorkoutDescription);
 elements.stopButton.addEventListener("click", stopWorkout);
 elements.repeatButton.addEventListener("click", startWorkout);
 elements.addExerciseButton.addEventListener("click", () => openExerciseDialog());
+elements.resetExercisesButton.addEventListener("click", openResetDialog);
+elements.resetDialogCancel.addEventListener("click", closeResetDialog);
+elements.resetDialogConfirm.addEventListener("click", restoreDefaultExercises);
 elements.exerciseDialogClose.addEventListener("click", closeExerciseDialog);
 elements.exerciseDialogCancel.addEventListener("click", closeExerciseDialog);
 elements.exerciseForm.addEventListener("submit", saveExercise);

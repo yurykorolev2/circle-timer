@@ -257,6 +257,46 @@ h1 {
   text-transform: uppercase;
 }
 
+.exercise-list-title {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.reset-exercises-button {
+  display: grid;
+  width: 1.65rem;
+  height: 1.65rem;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #727a70;
+  cursor: pointer;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.reset-exercises-button:hover:not(:disabled) {
+  color: var(--accent);
+}
+
+.reset-exercises-button:focus {
+  outline: none;
+}
+
+.reset-exercises-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.reset-exercises-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
 .button.add-exercise-button {
   width: auto;
   min-height: 2rem;
@@ -449,6 +489,38 @@ h1 {
 .exercise-dialog::backdrop {
   background: rgb(4 7 5 / 72%);
   backdrop-filter: blur(4px);
+}
+
+.reset-dialog {
+  width: min(calc(100% - 2rem), 27rem);
+}
+
+.reset-dialog__content {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+}
+
+.reset-dialog__content h2,
+.reset-dialog__content p {
+  margin: 0;
+}
+
+.reset-dialog__content h2 {
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.reset-dialog__content p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.reset-dialog__actions {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 0.75rem;
 }
 
 .exercise-form {
