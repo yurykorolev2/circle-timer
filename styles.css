@@ -1155,6 +1155,12 @@ h1 {
   }
 }
 
+@media (max-width: 47.99rem) {
+  .setup-controls {
+    margin-top: 1.75rem;
+  }
+}
+
 @media (max-width: 30rem) {
   .exercise-form__actions {
     grid-template-columns: 1fr 1fr;
