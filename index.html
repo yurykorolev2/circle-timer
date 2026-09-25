@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#10130f">
+    <meta
+      name="description"
+      content="Circle Timer — простой круговой таймер для последовательности упражнений."
+    >
+    <title>Circle Timer</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-header" aria-label="Circle Timer">
+        <a class="brand" href="index.html" aria-label="Circle Timer — на главный экран">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span>Circle Timer</span>
+        </a>
+        <span class="routine-label" id="routine-label">—</span>
+        <button class="button button--stop workout-stop" id="stop-button" type="button">
+          СТОП
+        </button>
+      </header>
+
+      <section class="view view--setup" id="setup-view" aria-labelledby="setup-title">
+        <div class="intro">
+          <p class="eyebrow">Гимнастика для шеи</p>
+          <h1 class="visually-hidden" id="setup-title">Гимнастика для шеи</h1>
+          <figure class="yoga-visual">
+            <div
+              class="yoga-icon"
+              role="img"
+              aria-label="Человек в спокойной позе для медитации"
+            ></div>
+          </figure>
+
+          <button class="button button--primary start-button" id="start-button" type="button" disabled>
+            Старт
+          </button>
+        </div>
+
+        <div class="setup-controls">
+          <div class="exercise-list-panel">
+            <div class="exercise-list-toolbar">
+              <h2>Упражнения</h2>
+              <button class="button button--secondary add-exercise-button" id="add-exercise-button" type="button" disabled>
+                <span aria-hidden="true">+</span> Добавить
+              </button>
+            </div>
+
+            <ol class="exercise-list" id="exercise-list" aria-label="План тренировки"></ol>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="view view--workout"
+        id="workout-view"
+        aria-labelledby="exercise-name"
+        hidden
+      >
+        <div class="workout-meta">
+          <div class="workout-meta__exercise">
+            <span>Упражнение</span>
+            <strong id="exercise-progress">— из —</strong>
+          </div>
+          <div class="workout-meta__current" aria-live="polite">
+            <h1 id="exercise-name">—</h1>
+            <p class="next-exercise">Далее: <strong id="next-exercise">—</strong></p>
+          </div>
+          <div class="total-time" aria-label="Общее оставшееся время тренировки">
+            <span>Time left</span>
+            <strong id="total-time-left">—:—</strong>
+          </div>
+        </div>
+
+        <div
+          class="timer-ring"
+          id="timer-ring"
+          role="timer"
+          aria-label="Оставшееся время"
+          aria-live="off"
+        >
+          <div class="timer-ring__inner">
+            <span class="timer-value timer-value--exercise" id="exercise-time-left">0:00</span>
+            <span class="timer-value timer-value--rest" id="rest-time-left">0:00</span>
+          </div>
+        </div>
+
+        <p class="repeat-progress" id="repeat-progress">— / —</p>
+
+        <div class="controls" aria-label="Управление таймером">
+          <button class="button button--primary" id="pause-button" type="button">
+            Начать
+          </button>
+        </div>
+      </section>
+
+      <section
+        class="view view--complete"
+        id="complete-view"
+        aria-labelledby="complete-title"
+        hidden
+      >
+        <div class="complete-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" focusable="false">
+            <path d="m14 24 7 7 14-15"></path>
+          </svg>
+        </div>
+        <p class="eyebrow">Тренировка завершена</p>
+        <h1 id="complete-title">Отличная работа</h1>
+        <p>Вы прошли всю тренировку. Можно перевести дух.</p>
+        <button class="button button--primary button--wide" id="repeat-button" type="button">
+          Повторить тренировку
+        </button>
+      </section>
+    </main>
+
+    <dialog class="exercise-dialog" id="exercise-dialog" aria-labelledby="exercise-dialog-title">
+      <form class="exercise-form" id="exercise-form">
+        <div class="exercise-dialog__header">
+          <h2 id="exercise-dialog-title">Добавить упражнение</h2>
+          <button class="dialog-close" id="exercise-dialog-close" type="button" aria-label="Закрыть">
+            ×
+          </button>
+        </div>
+
+        <label class="form-field">
+          <span>Название</span>
+          <input id="exercise-form-name" name="name" type="text" maxlength="60" required>
+        </label>
+
+        <label class="form-field">
+          <span>Описание</span>
+          <textarea id="exercise-form-description" name="description" rows="3"></textarea>
+        </label>
+
+        <div class="exercise-form__numbers">
+          <label class="form-field">
+            <span>Время упражнения, сек</span>
+            <input id="exercise-form-duration" name="duration" type="number" min="1" step="1" required>
+          </label>
+          <label class="form-field">
+            <span>Пауза, сек</span>
+            <input id="exercise-form-pause" name="pause" type="number" min="0" step="1" required>
+          </label>
+          <label class="form-field">
+            <span>Повторы</span>
+            <input id="exercise-form-repetitions" name="repetitions" type="number" min="1" step="1" required>
+          </label>
+        </div>
+
+        <div class="exercise-form__actions">
+          <button class="button exercise-delete-button" id="exercise-delete-button" type="button" hidden>
+            Удалить
+          </button>
+          <button class="button button--secondary" id="exercise-dialog-cancel" type="button">
+            Отмена
+          </button>
+          <button class="button button--primary" id="exercise-form-submit" type="submit">
+            Добавить
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <audio id="transition-sound" src="assets/transition-ding.mp3" preload="auto" hidden></audio>
+    <script src="script.js"></script>
+  </body>
+</html>
