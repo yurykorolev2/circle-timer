@@ -43,6 +43,10 @@ const elements = {
 const TICK_RATE = 100;
 const TRANSITION_SOUND_LEAD = 300;
 const EXERCISES_STORAGE_KEY = "circle-timer.exercises.v1";
+const PAUSE_SEQUENCE_MIGRATION_KEY = "circle-timer.migration.pause-sequence.v1";
+const PAUSE_SEQUENCE = [3, 3, 6, 5, 4, 5, 4, 3, 4, 6, 5];
+const AIRPLANE_PREVIOUS_DESCRIPTION = "Поднять руки в стороны до горизонтали. С усилием отвести их назад, стараясь свести лопатки. Удерживать напряжение между лопатками. Выполнить также с наклоном корпуса в обе стороны.";
+const AIRPLANE_DESCRIPTION = "Поднять руки в стороны до горизонтали. С усилием отвести их назад, стараясь свести лопатки. Удерживать напряжение между лопатками. Выполнить 3 раза с горизонтальным расположением, затем по 2 раза с наклонным в обе стороны.";
 
 function calculateTotalWorkoutTime() {
   return exercises.reduce(
@@ -118,6 +122,26 @@ function normalizeExerciseList(source, sourceName) {
   return normalizedExercises;
 }
 
+function applyPauseSequenceMigration(exerciseList) {
+  try {
+    const isApplied = globalThis.localStorage.getItem(PAUSE_SEQUENCE_MIGRATION_KEY) === "1";
+
+    if (isApplied) {
+      return;
+    }
+
+    exerciseList.forEach((exercise, index) => {
+      if (index < PAUSE_SEQUENCE.length) {
+        exercise.pause = PAUSE_SEQUENCE[index];
+      }
+    });
+
+    globalThis.localStorage.setItem(PAUSE_SEQUENCE_MIGRATION_KEY, "1");
+  } catch (error) {
+    console.warn("Не удалось применить новые значения пауз", error);
+  }
+}
+
 function loadSavedExercises() {
   try {
     const savedExercises = globalThis.localStorage.getItem(EXERCISES_STORAGE_KEY);
@@ -126,7 +150,19 @@ function loadSavedExercises() {
       return null;
     }
 
-    return normalizeExerciseList(JSON.parse(savedExercises), "сохранённых данных");
+    const normalizedExercises = normalizeExerciseList(
+      JSON.parse(savedExercises),
+      "сохранённых данных",
+    );
+    const airplane = normalizedExercises.find((exercise) => exercise.id === "airplane");
+
+    if (airplane?.description === AIRPLANE_PREVIOUS_DESCRIPTION) {
+      airplane.description = AIRPLANE_DESCRIPTION;
+    }
+
+    applyPauseSequenceMigration(normalizedExercises);
+
+    return normalizedExercises;
   } catch (error) {
     console.warn("Не удалось восстановить сохранённые упражнения", error);
 
