@@ -757,13 +757,14 @@ h1 {
 
 .controls {
   display: flex;
+  gap: 0.5rem;
   align-items: center;
   justify-content: center;
   margin-top: clamp(0.85rem, 2.2vh, 1.35rem);
 }
 
 .controls .button--primary {
-  width: min(100%, 13rem);
+  width: min(calc(100% - 5rem), 13rem);
   min-height: 2.65rem;
   padding: 0.55rem 1.25rem;
   border: 1px solid var(--accent);
@@ -781,6 +782,30 @@ h1 {
 
 .controls .button--primary:active {
   background: rgb(127 184 216 / 13%);
+}
+
+.button.workout-skip-button {
+  width: 2rem;
+  height: 2rem;
+  min-height: 2rem;
+  flex: 0 0 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #7f887d;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: -0.08em;
+}
+
+.button.workout-skip-button:hover:not(:disabled) {
+  color: var(--accent);
+}
+
+.button.workout-skip-button:disabled {
+  cursor: default;
+  opacity: 0.25;
 }
 
 .workout-description {

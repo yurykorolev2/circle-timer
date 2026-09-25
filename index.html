@@ -84,7 +84,10 @@
           </div>
           <div class="workout-meta__current" aria-live="polite">
             <h1 id="exercise-name">—</h1>
-            <p class="next-exercise">Далее: <strong id="next-exercise">—</strong></p>
+            <p class="next-exercise">
+              <span id="next-exercise-label">Далее:</span>
+              <strong id="next-exercise">—</strong>
+            </p>
           </div>
           <div class="total-time" aria-label="Общее оставшееся время тренировки">
             <span>Time left</span>
@@ -108,9 +111,21 @@
         <p class="repeat-progress" id="repeat-progress">— / —</p>
 
         <div class="controls" aria-label="Управление таймером">
+          <button
+            class="button workout-skip-button"
+            id="previous-exercise-button"
+            type="button"
+            aria-label="Перейти к предыдущему упражнению"
+          >&lt;&lt;</button>
           <button class="button button--primary" id="pause-button" type="button">
             Начать
           </button>
+          <button
+            class="button workout-skip-button"
+            id="next-exercise-button"
+            type="button"
+            aria-label="Перейти к следующему упражнению"
+          >&gt;&gt;</button>
         </div>
 
         <p class="workout-description" id="workout-description" hidden></p>

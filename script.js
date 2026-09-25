@@ -22,11 +22,14 @@ const elements = {
   exerciseDeleteButton: document.querySelector("#exercise-delete-button"),
   startButton: document.querySelector("#start-button"),
   pauseButton: document.querySelector("#pause-button"),
+  previousExerciseButton: document.querySelector("#previous-exercise-button"),
+  nextExerciseButton: document.querySelector("#next-exercise-button"),
   workoutInfoButton: document.querySelector("#workout-info-button"),
   workoutDescription: document.querySelector("#workout-description"),
   stopButton: document.querySelector("#stop-button"),
   repeatButton: document.querySelector("#repeat-button"),
   exerciseProgress: document.querySelector("#exercise-progress"),
+  nextExerciseLabel: document.querySelector("#next-exercise-label"),
   nextExercise: document.querySelector("#next-exercise"),
   repeatProgress: document.querySelector("#repeat-progress"),
   exerciseName: document.querySelector("#exercise-name"),
@@ -42,6 +45,14 @@ const TRANSITION_SOUND_LEAD = 300;
 
 function calculateTotalWorkoutTime() {
   return exercises.reduce(
+    (total, exercise) =>
+      total + (exercise.duration + exercise.pause) * exercise.repetitions * 1000,
+    0,
+  );
+}
+
+function calculateWorkoutTimeFromExercise(startIndex) {
+  return exercises.slice(startIndex).reduce(
     (total, exercise) =>
       total + (exercise.duration + exercise.pause) * exercise.repetitions * 1000,
     0,
@@ -412,12 +423,17 @@ function renderWorkout() {
   }
 
   elements.exerciseProgress.textContent = `${currentExerciseIndex + 1} из ${exercises.length}`;
-  elements.nextExercise.textContent = nextExercise ? nextExercise.name : "завершение";
+  elements.nextExerciseLabel.hidden = !nextExercise;
+  elements.nextExercise.textContent = nextExercise
+    ? nextExercise.name
+    : "это последнее упражнение";
   elements.repeatProgress.textContent = `${currentRepeat} / ${exercise.repetitions}`;
   elements.exerciseName.textContent = exercise.name;
   elements.exerciseTimeLeft.textContent = formatInterval(exerciseSeconds);
   elements.restTimeLeft.textContent = formatInterval(restSeconds);
   elements.totalTimeLeft.textContent = formatTime(totalTimeLeft / 1000);
+  elements.previousExerciseButton.disabled = currentExerciseIndex === 0;
+  elements.nextExerciseButton.disabled = currentExerciseIndex === exercises.length - 1;
   elements.workoutDescription.textContent = formatDescription(exercise.description);
   elements.workoutDescription.hidden = !isDescriptionVisible;
   elements.workoutInfoButton.disabled = !hasDescription;
@@ -603,8 +619,31 @@ function toggleWorkoutDescription() {
   renderWorkout();
 }
 
+function navigateExercise(direction) {
+  const targetIndex = currentExerciseIndex + direction;
+
+  if (targetIndex < 0 || targetIndex >= exercises.length) {
+    return;
+  }
+
+  currentExerciseIndex = targetIndex;
+  currentRepeat = 1;
+  phase = "exercise";
+  phaseTimeLeft = exercises[currentExerciseIndex].duration * 1000;
+  totalTimeLeft = calculateWorkoutTimeFromExercise(currentExerciseIndex);
+  hasPlayedTransitionSound = false;
+
+  if (timerId !== null) {
+    lastTickTimestamp = Date.now();
+  }
+
+  renderWorkout();
+}
+
 elements.startButton.addEventListener("click", startWorkout);
 elements.pauseButton.addEventListener("click", togglePause);
+elements.previousExerciseButton.addEventListener("click", () => navigateExercise(-1));
+elements.nextExerciseButton.addEventListener("click", () => navigateExercise(1));
 elements.workoutInfoButton.addEventListener("click", toggleWorkoutDescription);
 elements.stopButton.addEventListener("click", stopWorkout);
 elements.repeatButton.addEventListener("click", startWorkout);
