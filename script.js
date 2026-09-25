@@ -498,11 +498,10 @@ function renderWorkout() {
   const exerciseDuration = exercise.duration * 1000;
   const pauseDuration = exercise.pause * 1000;
   const cycleDuration = exerciseDuration + pauseDuration;
-  const exerciseEnd = phase === "exercise" ? (phaseTimeLeft / cycleDuration) * 100 : 0;
-  const restStart = (exerciseDuration / cycleDuration) * 100;
-  const restEnd = phase === "rest"
-    ? restStart + (phaseTimeLeft / cycleDuration) * 100
-    : 100;
+  const exerciseBoundary = (exerciseDuration / cycleDuration) * 100;
+  const progressPosition = phase === "exercise"
+    ? ((exerciseDuration - phaseTimeLeft) / cycleDuration) * 100
+    : exerciseBoundary + ((pauseDuration - phaseTimeLeft) / cycleDuration) * 100;
   const ariaPhase = phase === "rest" ? "Пауза" : exercise.name;
   const exerciseSeconds = phase === "exercise" ? phaseTimeLeft / 1000 : exercise.duration;
   const restSeconds = phase === "rest" ? phaseTimeLeft / 1000 : exercise.pause;
@@ -533,9 +532,8 @@ function renderWorkout() {
     isDescriptionVisible ? "Скрыть описание упражнения" : "Показать описание упражнения",
   );
   elements.pauseButton.classList.toggle("button--continue-pulse", isPaused);
-  elements.timerRing.style.setProperty("--exercise-end", exerciseEnd.toFixed(2));
-  elements.timerRing.style.setProperty("--rest-start", restStart.toFixed(2));
-  elements.timerRing.style.setProperty("--rest-end", restEnd.toFixed(2));
+  elements.timerRing.style.setProperty("--progress-position", progressPosition.toFixed(2));
+  elements.timerRing.style.setProperty("--exercise-boundary", exerciseBoundary.toFixed(2));
   elements.timerRing.classList.toggle("timer-ring--rest", phase === "rest");
   elements.timerRing.setAttribute(
     "aria-label",

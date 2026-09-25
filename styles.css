@@ -670,9 +670,8 @@ h1 {
 }
 
 .timer-ring {
-  --exercise-end: 75;
-  --rest-start: 75;
-  --rest-end: 100;
+  --progress-position: 0;
+  --exercise-boundary: 75;
   position: relative;
   display: grid;
   width: min(67vw, 19.25rem);
@@ -680,17 +679,22 @@ h1 {
   margin: clamp(1.1rem, 2.8vh, 1.5rem) auto clamp(0.8rem, 2vh, 1.2rem);
   place-items: center;
   border-radius: 50%;
+  transform: scaleX(-1);
   background: conic-gradient(
-    from 90deg,
-    var(--accent) 0 calc(var(--exercise-end) * 1%),
-    var(--ring-track) calc(var(--exercise-end) * 1%) calc(var(--rest-start) * 1%),
-    var(--rest-accent) calc(var(--rest-start) * 1%) calc(var(--rest-end) * 1%),
-    var(--ring-track) calc(var(--rest-end) * 1%) 100%
+    from 0deg,
+    var(--ring-track) 0 calc(var(--progress-position) * 1%),
+    var(--accent) calc(var(--progress-position) * 1%) calc(var(--exercise-boundary) * 1%),
+    var(--rest-accent) calc(var(--exercise-boundary) * 1%) 100%
   );
   box-shadow: 0 0 5rem rgb(127 184 216 / 7%);
 }
 
 .timer-ring--rest {
+  background: conic-gradient(
+    from 0deg,
+    var(--ring-track) 0 calc(var(--progress-position) * 1%),
+    var(--rest-accent) calc(var(--progress-position) * 1%) 100%
+  );
   box-shadow: none;
 }
 
@@ -710,7 +714,7 @@ h1 {
   display: grid;
   gap: 0.8rem;
   place-items: center;
-  transform: translateY(0.55rem);
+  transform: translateY(0.55rem) scaleX(-1);
 }
 
 .timer-value {
