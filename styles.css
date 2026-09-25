@@ -107,14 +107,46 @@ body:has(#workout-view:not([hidden])) .routine-label {
   display: none;
 }
 
-.workout-stop {
+.workout-actions {
   display: none;
 }
 
-body:has(#workout-view:not([hidden])) .workout-stop {
-  display: inline-flex;
+body:has(#workout-view:not([hidden])) .workout-actions {
+  display: flex;
+  gap: 0.4rem;
   align-items: center;
-  justify-content: center;
+}
+
+.button.workout-info-button {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  min-height: 1.5rem;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #737b72;
+}
+
+.button.workout-info-button:hover:not(:disabled),
+.button.workout-info-button[aria-expanded="true"] {
+  color: var(--accent);
+}
+
+.button.workout-info-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.workout-info-button svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 1.5;
 }
 
 .view[hidden] {
@@ -749,6 +781,18 @@ h1 {
 
 .controls .button--primary:active {
   background: rgb(127 184 216 / 13%);
+}
+
+.workout-description {
+  width: min(100%, 36rem);
+  max-width: 36rem;
+  margin: 0.85rem auto 0;
+  color: #8f978d;
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-line;
 }
 
 .button.button--stop {

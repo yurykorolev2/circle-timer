@@ -19,9 +19,25 @@
           <span>Circle Timer</span>
         </a>
         <span class="routine-label" id="routine-label">—</span>
-        <button class="button button--stop workout-stop" id="stop-button" type="button">
-          СТОП
-        </button>
+        <div class="workout-actions">
+          <button
+            class="button workout-info-button"
+            id="workout-info-button"
+            type="button"
+            aria-label="Показать описание упражнения"
+            aria-controls="workout-description"
+            aria-expanded="false"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M12 11v6"></path>
+              <path d="M12 7.5h.01"></path>
+            </svg>
+          </button>
+          <button class="button button--stop workout-stop" id="stop-button" type="button">
+            СТОП
+          </button>
+        </div>
       </header>
 
       <section class="view view--setup" id="setup-view" aria-labelledby="setup-title">
@@ -96,6 +112,8 @@
             Начать
           </button>
         </div>
+
+        <p class="workout-description" id="workout-description" hidden></p>
       </section>
 
       <section

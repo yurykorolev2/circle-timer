@@ -22,6 +22,8 @@ const elements = {
   exerciseDeleteButton: document.querySelector("#exercise-delete-button"),
   startButton: document.querySelector("#start-button"),
   pauseButton: document.querySelector("#pause-button"),
+  workoutInfoButton: document.querySelector("#workout-info-button"),
+  workoutDescription: document.querySelector("#workout-description"),
   stopButton: document.querySelector("#stop-button"),
   repeatButton: document.querySelector("#repeat-button"),
   exerciseProgress: document.querySelector("#exercise-progress"),
@@ -141,6 +143,7 @@ let lastTickTimestamp = 0;
 let timerId = null;
 let isAudioReady = false;
 let hasPlayedTransitionSound = false;
+let isDescriptionVisible = false;
 let editingExerciseIndex = null;
 
 function prepareAudio() {
@@ -192,6 +195,10 @@ function formatInterval(totalSeconds) {
   const minutes = Math.floor(safeSeconds / 60);
   const seconds = safeSeconds % 60;
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function formatDescription(description) {
+  return description.trim().replace(/([.!?…])\s+/g, "$1\n");
 }
 
 function escapeHtml(value) {
@@ -398,6 +405,11 @@ function renderWorkout() {
   const ariaPhase = phase === "rest" ? "Пауза" : exercise.name;
   const exerciseSeconds = phase === "exercise" ? phaseTimeLeft / 1000 : exercise.duration;
   const restSeconds = phase === "rest" ? phaseTimeLeft / 1000 : exercise.pause;
+  const hasDescription = exercise.description.length > 0;
+
+  if (!hasDescription) {
+    isDescriptionVisible = false;
+  }
 
   elements.exerciseProgress.textContent = `${currentExerciseIndex + 1} из ${exercises.length}`;
   elements.nextExercise.textContent = nextExercise ? nextExercise.name : "завершение";
@@ -406,6 +418,14 @@ function renderWorkout() {
   elements.exerciseTimeLeft.textContent = formatInterval(exerciseSeconds);
   elements.restTimeLeft.textContent = formatInterval(restSeconds);
   elements.totalTimeLeft.textContent = formatTime(totalTimeLeft / 1000);
+  elements.workoutDescription.textContent = formatDescription(exercise.description);
+  elements.workoutDescription.hidden = !isDescriptionVisible;
+  elements.workoutInfoButton.disabled = !hasDescription;
+  elements.workoutInfoButton.setAttribute("aria-expanded", String(isDescriptionVisible));
+  elements.workoutInfoButton.setAttribute(
+    "aria-label",
+    isDescriptionVisible ? "Скрыть описание упражнения" : "Показать описание упражнения",
+  );
   elements.pauseButton.classList.toggle("button--continue-pulse", isPaused);
   elements.timerRing.style.setProperty("--exercise-end", exerciseEnd.toFixed(2));
   elements.timerRing.style.setProperty("--rest-start", restStart.toFixed(2));
@@ -526,6 +546,7 @@ function resetWorkout() {
   isPaused = false;
   hasStarted = false;
   hasPlayedTransitionSound = false;
+  isDescriptionVisible = false;
   elements.pauseButton.textContent = "Начать";
   renderWorkout();
 }
@@ -573,8 +594,18 @@ function stopWorkout() {
   elements.startButton.focus();
 }
 
+function toggleWorkoutDescription() {
+  if (elements.workoutInfoButton.disabled) {
+    return;
+  }
+
+  isDescriptionVisible = !isDescriptionVisible;
+  renderWorkout();
+}
+
 elements.startButton.addEventListener("click", startWorkout);
 elements.pauseButton.addEventListener("click", togglePause);
+elements.workoutInfoButton.addEventListener("click", toggleWorkoutDescription);
 elements.stopButton.addEventListener("click", stopWorkout);
 elements.repeatButton.addEventListener("click", startWorkout);
 elements.addExerciseButton.addEventListener("click", () => openExerciseDialog());
