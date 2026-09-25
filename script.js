@@ -47,15 +47,21 @@ const elements = {
 const TICK_RATE = 100;
 const TRANSITION_SOUND_LEAD = 300;
 const EXERCISES_STORAGE_KEY = "circle-timer.exercises.v1";
+const DESCRIPTION_VISIBILITY_STORAGE_KEY = "circle-timer.description-visible";
 const PAUSE_SEQUENCE_MIGRATION_KEY = "circle-timer.migration.pause-sequence.v1";
-const PAUSE_SEQUENCE = [3, 3, 6, 5, 4, 5, 4, 3, 4, 6, 5];
+const PAUSE_CORRECTION_MIGRATION_KEY = "circle-timer.migration.pause-correction.v1";
+const PAUSE_SEQUENCE = [3, 3, 6, 5, 5, 5, 4, 4, 4, 6, 5];
 const AIRPLANE_PREVIOUS_DESCRIPTION = "Поднять руки в стороны до горизонтали. С усилием отвести их назад, стараясь свести лопатки. Удерживать напряжение между лопатками. Выполнить также с наклоном корпуса в обе стороны.";
-const AIRPLANE_DESCRIPTION = "Поднять руки в стороны до горизонтали. С усилием отвести их назад, стараясь свести лопатки. Удерживать напряжение между лопатками. Выполнить 3 раза с горизонтальным расположением, затем по 2 раза с наклонным в обе стороны.";
+const AIRPLANE_SINGLE_LINE_DESCRIPTION = "Поднять руки в стороны до горизонтали. С усилием отвести их назад, стараясь свести лопатки. Удерживать напряжение между лопатками. Выполнить 3 раза с горизонтальным расположением, затем по 2 раза с наклонным в обе стороны.";
+const AIRPLANE_FOUR_LINE_DESCRIPTION = "Поднять руки в стороны до горизонтали.\nС усилием отвести их назад, стараясь свести лопатки.\nУдерживать напряжение между лопатками.\nВыполнить 3 раза с горизонтальным расположением, затем по 2 раза с наклонным в обе стороны.";
+const AIRPLANE_DESCRIPTION = "Поднять руки в стороны до горизонтали.\nС усилием отвести их назад, стараясь свести лопатки.\nУдерживать напряжение между лопатками.\nВыполнить 3 раза с горизонтальным расположением,\nзатем по 2 раза с наклонным в обе стороны.";
 
 function calculateTotalWorkoutTime() {
   return exercises.reduce(
     (total, exercise) =>
-      total + (exercise.duration + exercise.pause) * exercise.repetitions * 1000,
+      exercise.enabled
+        ? total + (exercise.duration + exercise.pause) * exercise.repetitions * 1000
+        : total,
     0,
   );
 }
@@ -63,9 +69,38 @@ function calculateTotalWorkoutTime() {
 function calculateWorkoutTimeFromExercise(startIndex) {
   return exercises.slice(startIndex).reduce(
     (total, exercise) =>
-      total + (exercise.duration + exercise.pause) * exercise.repetitions * 1000,
+      exercise.enabled
+        ? total + (exercise.duration + exercise.pause) * exercise.repetitions * 1000
+        : total,
     0,
   );
+}
+
+function findEnabledExerciseIndex(startIndex, direction) {
+  for (
+    let index = startIndex + direction;
+    index >= 0 && index < exercises.length;
+    index += direction
+  ) {
+    if (exercises[index].enabled) {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+function getEnabledExerciseCount() {
+  return exercises.reduce(
+    (count, exercise) => count + (exercise.enabled ? 1 : 0),
+    0,
+  );
+}
+
+function getEnabledExercisePosition(index) {
+  return exercises
+    .slice(0, index + 1)
+    .reduce((count, exercise) => count + (exercise.enabled ? 1 : 0), 0);
 }
 
 function normalizeExercise(record, index) {
@@ -80,6 +115,7 @@ function normalizeExercise(record, index) {
   const description = typeof record.description === "string"
     ? record.description.trim()
     : "";
+  const enabled = record.enabled === undefined ? true : record.enabled;
 
   if (!id) {
     throw new Error(`${label}: отсутствует id`);
@@ -87,6 +123,10 @@ function normalizeExercise(record, index) {
 
   if (!name) {
     throw new Error(`${label}: отсутствует name`);
+  }
+
+  if (typeof enabled !== "boolean") {
+    throw new Error(`${label}: enabled должен иметь значение true или false`);
   }
 
   if (!Number.isInteger(record.duration) || record.duration <= 0) {
@@ -103,6 +143,7 @@ function normalizeExercise(record, index) {
 
   return {
     id,
+    enabled,
     name,
     description,
     duration: record.duration,
@@ -146,6 +187,31 @@ function applyPauseSequenceMigration(exerciseList) {
   }
 }
 
+function applyPauseCorrectionMigration(exerciseList) {
+  try {
+    const isApplied = globalThis.localStorage.getItem(PAUSE_CORRECTION_MIGRATION_KEY) === "1";
+
+    if (isApplied) {
+      return;
+    }
+
+    const frame = exerciseList.find((exercise) => exercise.id === "frame");
+    const heron = exerciseList.find((exercise) => exercise.id === "heron");
+
+    if (frame) {
+      frame.pause = 5;
+    }
+
+    if (heron) {
+      heron.pause = 4;
+    }
+
+    globalThis.localStorage.setItem(PAUSE_CORRECTION_MIGRATION_KEY, "1");
+  } catch (error) {
+    console.warn("Не удалось применить новые паузы для Рамки и Цапли", error);
+  }
+}
+
 function loadSavedExercises() {
   try {
     const savedExercises = globalThis.localStorage.getItem(EXERCISES_STORAGE_KEY);
@@ -160,11 +226,16 @@ function loadSavedExercises() {
     );
     const airplane = normalizedExercises.find((exercise) => exercise.id === "airplane");
 
-    if (airplane?.description === AIRPLANE_PREVIOUS_DESCRIPTION) {
+    if (
+      airplane?.description === AIRPLANE_PREVIOUS_DESCRIPTION ||
+      airplane?.description === AIRPLANE_SINGLE_LINE_DESCRIPTION ||
+      airplane?.description === AIRPLANE_FOUR_LINE_DESCRIPTION
+    ) {
       airplane.description = AIRPLANE_DESCRIPTION;
     }
 
     applyPauseSequenceMigration(normalizedExercises);
+    applyPauseCorrectionMigration(normalizedExercises);
 
     return normalizedExercises;
   } catch (error) {
@@ -188,10 +259,33 @@ function persistExercises() {
   }
 }
 
+function loadDescriptionVisibilityPreference() {
+  try {
+    const savedValue = globalThis.localStorage.getItem(DESCRIPTION_VISIBILITY_STORAGE_KEY);
+    return savedValue === null ? true : savedValue === "true";
+  } catch {
+    return true;
+  }
+}
+
+function persistDescriptionVisibilityPreference() {
+  try {
+    globalThis.localStorage.setItem(
+      DESCRIPTION_VISIBILITY_STORAGE_KEY,
+      String(isDescriptionVisible),
+    );
+  } catch (error) {
+    console.warn("Не удалось сохранить состояние описания", error);
+  }
+}
+
 function applyExerciseList(exerciseList) {
   exercises.splice(0, exercises.length, ...exerciseList);
   totalWorkoutDuration = calculateTotalWorkoutTime();
-  phaseTimeLeft = exercises[0].duration * 1000;
+  const firstEnabledIndex = findEnabledExerciseIndex(-1, 1);
+  phaseTimeLeft = firstEnabledIndex === -1
+    ? 0
+    : exercises[firstEnabledIndex].duration * 1000;
   totalTimeLeft = totalWorkoutDuration;
 }
 
@@ -251,7 +345,7 @@ let lastTickTimestamp = 0;
 let timerId = null;
 let isAudioReady = false;
 let hasPlayedTransitionSound = false;
-let isDescriptionVisible = false;
+let isDescriptionVisible = loadDescriptionVisibilityPreference();
 let editingExerciseIndex = null;
 
 function prepareAudio() {
@@ -287,7 +381,14 @@ function prepareAudio() {
 function playTransitionDing() {
   elements.transitionSound.pause();
   elements.transitionSound.currentTime = 0;
-  elements.transitionSound.play().catch(() => {});
+  elements.transitionSound.muted = false;
+  elements.transitionSound.volume = 0.55;
+  elements.transitionSound
+    .play()
+    .then(() => {
+      isAudioReady = true;
+    })
+    .catch(() => {});
 }
 
 function formatTime(totalSeconds) {
@@ -360,12 +461,25 @@ function showView(activeView) {
 }
 
 function renderSetup() {
-  elements.routineLabel.textContent = `${formatTime(totalWorkoutDuration / 1000)} | ${formatExerciseCount(exercises.length)}`;
+  const enabledExerciseCount = getEnabledExerciseCount();
+
+  elements.routineLabel.textContent = `${formatTime(totalWorkoutDuration / 1000)} | ${formatExerciseCount(enabledExerciseCount)}`;
+  elements.startButton.disabled = enabledExerciseCount === 0;
   elements.exerciseList.innerHTML = exercises
     .map(
       (exercise, index) => `
-        <li class="exercise-item">
-          <span class="exercise-item__number" aria-hidden="true">${index + 1}</span>
+        <li class="exercise-item${exercise.enabled ? "" : " exercise-item--disabled"}">
+          <span class="exercise-item__selector">
+            <span class="exercise-item__number" aria-hidden="true">${index + 1}</span>
+            <button
+              class="exercise-item__status"
+              type="button"
+              role="checkbox"
+              aria-checked="${exercise.enabled}"
+              aria-label="${exercise.enabled ? "Отключить" : "Включить"} упражнение «${escapeHtml(exercise.name)}»"
+              data-exercise-index="${index}"
+            ></button>
+          </span>
           <span class="exercise-item__copy">
             <span class="exercise-item__topline">
               <span class="exercise-item__name">${escapeHtml(exercise.name)}</span>
@@ -375,17 +489,19 @@ function renderSetup() {
             </span>
             <span class="exercise-item__description">${escapeHtml(exercise.description)}</span>
           </span>
-          <button
-            class="exercise-item__edit"
-            type="button"
-            data-exercise-index="${index}"
-            aria-label="Редактировать упражнение"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"></path>
-              <path d="m13.5 6.5 4 4"></path>
-            </svg>
-          </button>
+          <span class="exercise-item__actions">
+            <button
+              class="exercise-item__edit"
+              type="button"
+              data-exercise-index="${index}"
+              aria-label="Редактировать упражнение"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z"></path>
+                <path d="m13.5 6.5 4 4"></path>
+              </svg>
+            </button>
+          </span>
         </li>
       `,
     )
@@ -396,7 +512,7 @@ function openExerciseDialog(index = null) {
   const isEditing = index !== null;
   const exercise = isEditing
     ? exercises[index]
-    : { name: "", description: "", duration: 15, pause: 5, repetitions: 10 };
+    : { enabled: true, name: "", description: "", duration: 15, pause: 5, repetitions: 10 };
 
   editingExerciseIndex = index;
   elements.exerciseDialogTitle.textContent = isEditing
@@ -485,6 +601,9 @@ function saveExercise(event) {
     id: editingExerciseIndex === null
       ? createUniqueExerciseId()
       : exercises[editingExerciseIndex].id,
+    enabled: editingExerciseIndex === null
+      ? true
+      : exercises[editingExerciseIndex].enabled,
     name,
     description,
     duration,
@@ -500,7 +619,10 @@ function saveExercise(event) {
 
   persistExercises();
   totalWorkoutDuration = calculateTotalWorkoutTime();
-  phaseTimeLeft = exercises[0].duration * 1000;
+  const firstEnabledIndex = findEnabledExerciseIndex(-1, 1);
+  phaseTimeLeft = firstEnabledIndex === -1
+    ? 0
+    : exercises[firstEnabledIndex].duration * 1000;
   totalTimeLeft = totalWorkoutDuration;
   renderSetup();
   closeExerciseDialog();
@@ -521,7 +643,10 @@ function deleteExercise() {
   exercises.splice(editingExerciseIndex, 1);
   persistExercises();
   totalWorkoutDuration = calculateTotalWorkoutTime();
-  phaseTimeLeft = exercises[0].duration * 1000;
+  const firstEnabledIndex = findEnabledExerciseIndex(-1, 1);
+  phaseTimeLeft = firstEnabledIndex === -1
+    ? 0
+    : exercises[firstEnabledIndex].duration * 1000;
   totalTimeLeft = totalWorkoutDuration;
   renderSetup();
   closeExerciseDialog();
@@ -529,7 +654,9 @@ function deleteExercise() {
 
 function renderWorkout() {
   const exercise = exercises[currentExerciseIndex];
-  const nextExercise = exercises[currentExerciseIndex + 1];
+  const previousExerciseIndex = findEnabledExerciseIndex(currentExerciseIndex, -1);
+  const nextExerciseIndex = findEnabledExerciseIndex(currentExerciseIndex, 1);
+  const nextExercise = nextExerciseIndex === -1 ? null : exercises[nextExerciseIndex];
   const exerciseDuration = exercise.duration * 1000;
   const pauseDuration = exercise.pause * 1000;
   const cycleDuration = exerciseDuration + pauseDuration;
@@ -541,12 +668,9 @@ function renderWorkout() {
   const exerciseSeconds = phase === "exercise" ? phaseTimeLeft / 1000 : exercise.duration;
   const restSeconds = phase === "rest" ? phaseTimeLeft / 1000 : exercise.pause;
   const hasDescription = exercise.description.length > 0;
+  const isDescriptionShown = hasDescription && isDescriptionVisible;
 
-  if (!hasDescription) {
-    isDescriptionVisible = false;
-  }
-
-  elements.exerciseProgress.textContent = `${currentExerciseIndex + 1} из ${exercises.length}`;
+  elements.exerciseProgress.textContent = `${getEnabledExercisePosition(currentExerciseIndex)} из ${getEnabledExerciseCount()}`;
   elements.nextExerciseLabel.hidden = !nextExercise;
   elements.nextExercise.textContent = nextExercise
     ? nextExercise.name
@@ -556,15 +680,15 @@ function renderWorkout() {
   elements.exerciseTimeLeft.textContent = formatInterval(exerciseSeconds);
   elements.restTimeLeft.textContent = formatInterval(restSeconds);
   elements.totalTimeLeft.textContent = formatTime(totalTimeLeft / 1000);
-  elements.previousExerciseButton.disabled = currentExerciseIndex === 0;
-  elements.nextExerciseButton.disabled = currentExerciseIndex === exercises.length - 1;
+  elements.previousExerciseButton.disabled = previousExerciseIndex === -1;
+  elements.nextExerciseButton.disabled = nextExerciseIndex === -1;
   elements.workoutDescription.textContent = formatDescription(exercise.description);
-  elements.workoutDescription.hidden = !isDescriptionVisible;
+  elements.workoutDescription.hidden = !isDescriptionShown;
   elements.workoutInfoButton.disabled = !hasDescription;
-  elements.workoutInfoButton.setAttribute("aria-expanded", String(isDescriptionVisible));
+  elements.workoutInfoButton.setAttribute("aria-expanded", String(isDescriptionShown));
   elements.workoutInfoButton.setAttribute(
     "aria-label",
-    isDescriptionVisible ? "Скрыть описание упражнения" : "Показать описание упражнения",
+    isDescriptionShown ? "Скрыть описание упражнения" : "Показать описание упражнения",
   );
   elements.pauseButton.classList.toggle("button--continue-pulse", isPaused);
   elements.timerRing.style.setProperty("--progress-position", progressPosition.toFixed(2));
@@ -611,8 +735,10 @@ function moveToNextPhase() {
     return true;
   }
 
-  if (currentExerciseIndex < exercises.length - 1) {
-    currentExerciseIndex += 1;
+  const nextExerciseIndex = findEnabledExerciseIndex(currentExerciseIndex, 1);
+
+  if (nextExerciseIndex !== -1) {
+    currentExerciseIndex = nextExerciseIndex;
     currentRepeat = 1;
     phase = "exercise";
     phaseTimeLeft = exercises[currentExerciseIndex].duration * 1000;
@@ -677,29 +803,41 @@ function runTimer() {
 
 function resetWorkout() {
   stopTimer();
-  currentExerciseIndex = 0;
+  const firstEnabledIndex = findEnabledExerciseIndex(-1, 1);
+
+  if (firstEnabledIndex === -1) {
+    return false;
+  }
+
+  currentExerciseIndex = firstEnabledIndex;
   currentRepeat = 1;
   phase = "exercise";
-  phaseTimeLeft = exercises[0].duration * 1000;
+  phaseTimeLeft = exercises[currentExerciseIndex].duration * 1000;
   totalTimeLeft = totalWorkoutDuration;
   isPaused = false;
   hasStarted = false;
   hasPlayedTransitionSound = false;
-  isDescriptionVisible = false;
+  isDescriptionVisible = loadDescriptionVisibilityPreference();
   elements.pauseButton.textContent = "Начать";
   renderWorkout();
+  return true;
 }
 
 function startWorkout() {
   syncExercisesFromStorage();
-  resetWorkout();
+
+  if (!resetWorkout()) {
+    renderSetup();
+    showView(elements.setupView);
+    return;
+  }
+
   showView(elements.workoutView);
 }
 
 function togglePause() {
-  prepareAudio();
-
   if (!hasStarted) {
+    playTransitionDing();
     hasStarted = true;
     isPaused = false;
     elements.pauseButton.textContent = "Пауза";
@@ -707,6 +845,8 @@ function togglePause() {
     runTimer();
     return;
   }
+
+  prepareAudio();
 
   if (isPaused) {
     isPaused = false;
@@ -740,13 +880,14 @@ function toggleWorkoutDescription() {
   }
 
   isDescriptionVisible = !isDescriptionVisible;
+  persistDescriptionVisibilityPreference();
   renderWorkout();
 }
 
 function navigateExercise(direction) {
-  const targetIndex = currentExerciseIndex + direction;
+  const targetIndex = findEnabledExerciseIndex(currentExerciseIndex, direction);
 
-  if (targetIndex < 0 || targetIndex >= exercises.length) {
+  if (targetIndex === -1) {
     return;
   }
 
@@ -780,6 +921,23 @@ elements.exerciseDialogCancel.addEventListener("click", closeExerciseDialog);
 elements.exerciseForm.addEventListener("submit", saveExercise);
 elements.exerciseDeleteButton.addEventListener("click", deleteExercise);
 elements.exerciseList.addEventListener("click", (event) => {
+  const statusButton = event.target.closest(".exercise-item__status");
+
+  if (statusButton !== null) {
+    const exerciseIndex = Number(statusButton.dataset.exerciseIndex);
+    const exercise = exercises[exerciseIndex];
+
+    if (exercise) {
+      exercise.enabled = !exercise.enabled;
+      persistExercises();
+      totalWorkoutDuration = calculateTotalWorkoutTime();
+      totalTimeLeft = totalWorkoutDuration;
+      renderSetup();
+    }
+
+    return;
+  }
+
   const editButton = event.target.closest(".exercise-item__edit");
 
   if (editButton === null) {

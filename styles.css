@@ -326,6 +326,111 @@ h1 {
   border-top: 1px solid var(--line);
 }
 
+.exercise-item__actions {
+  display: flex;
+  align-items: center;
+}
+
+.exercise-item__selector {
+  position: relative;
+  display: grid;
+  width: 2.1rem;
+  height: 2.5rem;
+  place-items: center;
+}
+
+.exercise-item__status {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  cursor: pointer;
+  color: #747c76;
+  opacity: 1;
+  transform: translate(-50%, -50%);
+  transition: color 150ms ease, opacity 150ms ease;
+}
+
+.exercise-item__status::before {
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid currentColor;
+  border-radius: 0.2rem;
+  background: transparent;
+  content: "";
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.exercise-item__status::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.58rem;
+  height: 0.3rem;
+  border-bottom: 1.6px solid currentColor;
+  border-left: 1.6px solid currentColor;
+  content: "";
+  opacity: 0;
+  transform: translate(-50%, -65%) rotate(-45deg);
+  transition: opacity 150ms ease;
+}
+
+.exercise-item__status[aria-checked="true"] {
+  color: var(--accent);
+}
+
+.exercise-item__status[aria-checked="true"]::after {
+  opacity: 1;
+}
+
+.exercise-item__status:hover {
+  color: #a6aea8;
+}
+
+.exercise-item__status[aria-checked="true"]:hover {
+  color: #9ac9e2;
+}
+
+.exercise-item__status:focus {
+  outline: none;
+}
+
+.exercise-item__status:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -3px;
+}
+
+.exercise-item--disabled {
+  min-height: 3rem;
+  padding-block: 0.25rem;
+}
+
+.exercise-item--disabled .exercise-item__copy {
+  align-self: center;
+  opacity: 0.62;
+}
+
+.exercise-item--disabled .exercise-item__description,
+.exercise-item--disabled .exercise-item__meta {
+  display: none;
+}
+
+.exercise-item--disabled:hover .exercise-item__copy {
+  opacity: 0.74;
+}
+
+.exercise-item__number,
+.exercise-item__copy {
+  transition: opacity 150ms ease;
+}
+
 .exercise-item__number {
   display: grid;
   width: 2rem;
@@ -336,6 +441,7 @@ h1 {
   color: var(--accent);
   font-size: 0.78rem;
   font-weight: 800;
+  opacity: 0;
 }
 
 .exercise-item__copy {
@@ -382,8 +488,8 @@ h1 {
 
 .exercise-item__edit {
   display: grid;
-  width: 2.125rem;
-  height: 2.125rem;
+  width: 2.5rem;
+  height: 2.5rem;
   padding: 0;
   place-items: center;
   border: 1px solid transparent;
@@ -1019,11 +1125,31 @@ h1 {
 }
 
 @media (hover: hover) and (pointer: fine) {
+  .exercise-item:not(.exercise-item--disabled) .exercise-item__number {
+    opacity: 1;
+  }
+
+  .exercise-item:not(.exercise-item--disabled) .exercise-item__status {
+    opacity: 0;
+  }
+
+  .exercise-item:not(.exercise-item--disabled):hover .exercise-item__number,
+  .exercise-item:not(.exercise-item--disabled):focus-within .exercise-item__number {
+    opacity: 0;
+  }
+
+  .exercise-item:hover .exercise-item__status,
+  .exercise-item:focus-within .exercise-item__status,
+  .exercise-item--disabled .exercise-item__status {
+    opacity: 1;
+  }
+
   .exercise-item__edit {
     opacity: 0;
   }
 
   .exercise-item:hover .exercise-item__edit,
+  .exercise-item:focus-within .exercise-item__edit,
   .exercise-item__edit:focus-visible {
     opacity: 1;
   }
