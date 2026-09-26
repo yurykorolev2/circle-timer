@@ -36,6 +36,7 @@ const elements = {
   nextExerciseLabel: document.querySelector("#next-exercise-label"),
   nextExercise: document.querySelector("#next-exercise"),
   repeatProgress: document.querySelector("#repeat-progress"),
+  repeatDots: document.querySelector("#repeat-dots"),
   exerciseName: document.querySelector("#exercise-name"),
   timerRing: document.querySelector("#timer-ring"),
   exerciseTimeLeft: document.querySelector("#exercise-time-left"),
@@ -344,15 +345,30 @@ let hasStarted = false;
 let lastTickTimestamp = 0;
 let timerId = null;
 let isAudioReady = false;
+let isAudioSessionConfigured = false;
 let hasPlayedTransitionSound = false;
 let isDescriptionVisible = loadDescriptionVisibilityPreference();
 let editingExerciseIndex = null;
+
+function configureAmbientAudioSession() {
+  if (isAudioSessionConfigured || !("audioSession" in navigator)) {
+    return;
+  }
+
+  try {
+    navigator.audioSession.type = "ambient";
+    isAudioSessionConfigured = true;
+  } catch (error) {
+    console.warn("Не удалось включить смешивание звука с фоновой музыкой", error);
+  }
+}
 
 function prepareAudio() {
   if (isAudioReady) {
     return;
   }
 
+  configureAmbientAudioSession();
   elements.transitionSound.muted = true;
   const playRequest = elements.transitionSound.play();
 
@@ -379,6 +395,7 @@ function prepareAudio() {
 }
 
 function playTransitionDing() {
+  configureAmbientAudioSession();
   elements.transitionSound.pause();
   elements.transitionSound.currentTime = 0;
   elements.transitionSound.muted = false;
@@ -676,6 +693,36 @@ function renderWorkout() {
     ? nextExercise.name
     : "это последнее упражнение";
   elements.repeatProgress.textContent = `${currentRepeat} / ${exercise.repetitions}`;
+  const repeatDotsState = `${currentRepeat}:${exercise.repetitions}:${hasStarted}`;
+
+  if (elements.repeatDots.dataset.state !== repeatDotsState) {
+    elements.repeatDots.innerHTML = Array.from(
+      { length: exercise.repetitions },
+      (_, index) => {
+        const repeatNumber = index + 1;
+        const stateClass = repeatNumber < currentRepeat
+          ? " repeat-dot--complete"
+          : repeatNumber === currentRepeat && hasStarted
+            ? " repeat-dot--current"
+            : "";
+
+        return `<span class="repeat-dot${stateClass}" aria-hidden="true"></span>`;
+      },
+    ).join("");
+    elements.repeatDots.dataset.state = repeatDotsState;
+  }
+
+  elements.repeatDots.setAttribute(
+    "aria-valuenow",
+    String(hasStarted ? currentRepeat : 0),
+  );
+  elements.repeatDots.setAttribute("aria-valuemax", String(exercise.repetitions));
+  elements.repeatDots.setAttribute(
+    "aria-valuetext",
+    hasStarted
+      ? `Повтор ${currentRepeat} из ${exercise.repetitions}`
+      : `Тренировка не начата, 0 из ${exercise.repetitions}`,
+  );
   elements.exerciseName.textContent = exercise.name;
   elements.exerciseTimeLeft.textContent = formatInterval(exerciseSeconds);
   elements.restTimeLeft.textContent = formatInterval(restSeconds);

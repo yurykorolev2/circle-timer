@@ -105,17 +105,26 @@
           </div>
         </div>
 
-        <div
-          class="timer-ring"
-          id="timer-ring"
-          role="timer"
-          aria-label="Оставшееся время"
-          aria-live="off"
-        >
-          <div class="timer-ring__inner">
-            <span class="timer-value timer-value--exercise" id="exercise-time-left">0:00</span>
-            <span class="timer-value timer-value--rest" id="rest-time-left">0:00</span>
+        <div class="timer-stage">
+          <div
+            class="timer-ring"
+            id="timer-ring"
+            role="timer"
+            aria-label="Оставшееся время"
+            aria-live="off"
+          >
+            <div class="timer-ring__inner">
+              <span class="timer-value timer-value--exercise" id="exercise-time-left">0:00</span>
+              <span class="timer-value timer-value--rest" id="rest-time-left">0:00</span>
+            </div>
           </div>
+          <div
+            class="repeat-dots"
+            id="repeat-dots"
+            role="progressbar"
+            aria-label="Прогресс повторов текущего упражнения"
+            aria-valuemin="0"
+          ></div>
         </div>
 
         <p class="repeat-progress" id="repeat-progress">— / —</p>
