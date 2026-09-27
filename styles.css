@@ -1234,20 +1234,39 @@ h1 {
 }
 
 @media (max-width: 30rem) {
+  .timer-stage {
+    --timer-size: min(58vw, 16.75rem);
+  }
+
+  .repeat-dots {
+    right: 1.9rem;
+    gap: 0.46rem;
+  }
+
+  .repeat-dot {
+    width: 0.58rem;
+  }
+
   .workout-bottom {
-    display: grid;
-    grid-template-columns: 4.75rem minmax(0, 1fr);
-    gap: 0.5rem;
+    display: flex;
+    gap: 0;
   }
 
   .workout-bottom .total-time {
-    position: static;
-    min-width: 0;
-    transform: none;
+    position: absolute;
+    top: 50%;
+    left: 0;
+    min-width: 4.75rem;
+    transform: translateY(-50%);
   }
 
   .workout-bottom .controls {
-    width: 100%;
+    width: min(100%, 15rem);
+    margin-inline: auto;
+  }
+
+  .controls .button--primary {
+    width: 8.25rem;
   }
 
   .exercise-form__actions {
