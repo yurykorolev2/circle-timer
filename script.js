@@ -346,6 +346,8 @@ let lastTickTimestamp = 0;
 let timerId = null;
 let isAudioReady = false;
 let isAudioSessionConfigured = false;
+let screenWakeLock = null;
+let isWakeLockRequestPending = false;
 let hasPlayedTransitionSound = false;
 let isDescriptionVisible = loadDescriptionVisibilityPreference();
 let editingExerciseIndex = null;
@@ -406,6 +408,58 @@ function playTransitionDing() {
       isAudioReady = true;
     })
     .catch(() => {});
+}
+
+function shouldKeepScreenAwake() {
+  return hasStarted &&
+    !isPaused &&
+    timerId !== null &&
+    !elements.workoutView.hidden &&
+    document.visibilityState === "visible";
+}
+
+async function requestScreenWakeLock() {
+  if (
+    !("wakeLock" in navigator) ||
+    screenWakeLock !== null ||
+    isWakeLockRequestPending ||
+    !shouldKeepScreenAwake()
+  ) {
+    return;
+  }
+
+  isWakeLockRequestPending = true;
+
+  try {
+    const wakeLock = await navigator.wakeLock.request("screen");
+
+    if (!shouldKeepScreenAwake()) {
+      await wakeLock.release();
+      return;
+    }
+
+    screenWakeLock = wakeLock;
+    wakeLock.addEventListener("release", () => {
+      if (screenWakeLock === wakeLock) {
+        screenWakeLock = null;
+      }
+    });
+  } catch (error) {
+    console.warn("Не удалось удерживать экран включённым", error);
+  } finally {
+    isWakeLockRequestPending = false;
+  }
+}
+
+function releaseScreenWakeLock() {
+  const wakeLock = screenWakeLock;
+  screenWakeLock = null;
+
+  if (wakeLock !== null && !wakeLock.released) {
+    wakeLock.release().catch((error) => {
+      console.warn("Не удалось освободить блокировку экрана", error);
+    });
+  }
 }
 
 function formatTime(totalSeconds) {
@@ -756,6 +810,7 @@ function stopTimer() {
 
 function completeWorkout() {
   stopTimer();
+  releaseScreenWakeLock();
   phaseTimeLeft = 0;
   totalTimeLeft = 0;
   isPaused = false;
@@ -846,10 +901,12 @@ function runTimer() {
   stopTimer();
   lastTickTimestamp = Date.now();
   timerId = setInterval(updateTimer, TICK_RATE);
+  void requestScreenWakeLock();
 }
 
 function resetWorkout() {
   stopTimer();
+  releaseScreenWakeLock();
   const firstEnabledIndex = findEnabledExerciseIndex(-1, 1);
 
   if (firstEnabledIndex === -1) {
@@ -911,6 +968,7 @@ function togglePause() {
 
   isPaused = true;
   stopTimer();
+  releaseScreenWakeLock();
   elements.pauseButton.textContent = "Продолжить";
   renderWorkout();
 }
@@ -998,8 +1056,14 @@ elements.exerciseDialog.addEventListener("close", () => {
 });
 
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && timerId !== null) {
+  if (document.hidden) {
+    releaseScreenWakeLock();
+    return;
+  }
+
+  if (timerId !== null) {
     updateTimer();
+    void requestScreenWakeLock();
   }
 });
 
