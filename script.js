@@ -1,3 +1,5 @@
+const APP_VERSION = "1.0";
+
 // Единственный рабочий массив: данные восстанавливаются из браузера или exercises.json.
 const exercises = [];
 
@@ -6,6 +8,7 @@ const elements = {
   workoutView: document.querySelector("#workout-view"),
   completeView: document.querySelector("#complete-view"),
   exerciseList: document.querySelector("#exercise-list"),
+  appVersion: document.querySelector("#app-version"),
   routineLabel: document.querySelector("#routine-label"),
   addExerciseButton: document.querySelector("#add-exercise-button"),
   resetExercisesButton: document.querySelector("#reset-exercises-button"),
@@ -1121,4 +1124,5 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
+elements.appVersion.textContent = `v${APP_VERSION}`;
 loadExercises();
