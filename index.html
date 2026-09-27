@@ -99,9 +99,9 @@
               <strong id="next-exercise">—</strong>
             </p>
           </div>
-          <div class="total-time" aria-label="Общее оставшееся время тренировки">
-            <span>Time left</span>
-            <strong id="total-time-left">—:—</strong>
+          <div class="workout-meta__repeats" aria-label="Повторы текущего упражнения">
+            <span>Повторы</span>
+            <strong id="repeat-progress">— / —</strong>
           </div>
         </div>
 
@@ -127,24 +127,29 @@
           ></div>
         </div>
 
-        <p class="repeat-progress" id="repeat-progress">— / —</p>
+        <div class="workout-bottom">
+          <div class="total-time" aria-label="Общее оставшееся время тренировки">
+            <span>Time left</span>
+            <strong id="total-time-left">—:—</strong>
+          </div>
 
-        <div class="controls" aria-label="Управление таймером">
-          <button
-            class="button workout-skip-button"
-            id="previous-exercise-button"
-            type="button"
-            aria-label="Перейти к предыдущему упражнению"
-          >&lt;&lt;</button>
-          <button class="button button--primary" id="pause-button" type="button">
-            Начать
-          </button>
-          <button
-            class="button workout-skip-button"
-            id="next-exercise-button"
-            type="button"
-            aria-label="Перейти к следующему упражнению"
-          >&gt;&gt;</button>
+          <div class="controls" aria-label="Управление таймером">
+            <button
+              class="button workout-skip-button"
+              id="previous-exercise-button"
+              type="button"
+              aria-label="Перейти к предыдущему упражнению"
+            >&lt;&lt;</button>
+            <button class="button button--primary" id="pause-button" type="button">
+              Начать
+            </button>
+            <button
+              class="button workout-skip-button"
+              id="next-exercise-button"
+              type="button"
+              aria-label="Перейти к следующему упражнению"
+            >&gt;&gt;</button>
+          </div>
         </div>
 
         <p class="workout-description" id="workout-description" hidden></p>

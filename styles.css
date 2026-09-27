@@ -107,6 +107,10 @@ body:has(#workout-view:not([hidden])) .routine-label {
   display: none;
 }
 
+body:has(#workout-view:not([hidden])) .app-header {
+  margin-bottom: clamp(1.5rem, 4.5vh, 2.75rem);
+}
+
 .workout-actions {
   display: none;
 }
@@ -777,6 +781,7 @@ h1 {
 }
 
 .workout-meta__exercise,
+.workout-meta__repeats,
 .total-time {
   display: flex;
   flex-direction: column;
@@ -787,6 +792,7 @@ h1 {
 }
 
 .workout-meta__exercise span,
+.workout-meta__repeats span,
 .total-time span {
   margin-bottom: 0.25rem;
   color: var(--muted);
@@ -797,6 +803,7 @@ h1 {
 }
 
 .workout-meta__exercise strong,
+.workout-meta__repeats strong,
 .total-time strong {
   color: var(--text);
   font-size: 1.2rem;
@@ -834,12 +841,21 @@ h1 {
   font-weight: 650;
 }
 
-.total-time {
-  align-items: flex-end;
+.workout-meta__repeats {
+  align-items: center;
   min-width: 5.4rem;
-  padding-left: 1rem;
-  border-left: 1px solid var(--line);
-  text-align: right;
+  text-align: center;
+}
+
+.workout-meta__repeats strong {
+  color: #c7cdc7;
+  font-weight: 400;
+}
+
+.total-time {
+  align-items: flex-start;
+  min-width: 5.4rem;
+  text-align: left;
 }
 
 .total-time strong {
@@ -851,7 +867,7 @@ h1 {
   --timer-size: min(67vw, 19.25rem);
   position: relative;
   width: 100%;
-  margin: clamp(1.1rem, 2.8vh, 1.5rem) auto clamp(0.8rem, 2vh, 1.2rem);
+  margin: clamp(1.6rem, 4vh, 2rem) auto clamp(1.6rem, 4vh, 2.4rem);
 }
 
 .timer-ring {
@@ -877,13 +893,13 @@ h1 {
 .repeat-dots {
   position: absolute;
   top: 50%;
-  right: clamp(0.75rem, 7vw, 2.5rem);
+  right: 2.7rem;
   display: flex;
   flex-direction: column-reverse;
   gap: 0.5rem;
   align-items: flex-start;
   justify-content: center;
-  transform: translate(1.25rem, -50%);
+  transform: translate(50%, -50%);
 }
 
 .repeat-dot {
@@ -973,25 +989,32 @@ h1 {
   opacity: 1;
 }
 
-.repeat-progress {
-  margin: 0 0 0.85rem;
-  color: #c7cdc7;
-  font-size: clamp(1.35rem, 6.3vw, 1.95rem);
-  font-weight: 400;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.04em;
-}
-
-.controls {
+.workout-bottom {
+  position: relative;
   display: flex;
-  gap: 0.5rem;
+  min-height: 3rem;
   align-items: center;
   justify-content: center;
   margin-top: clamp(0.85rem, 2.2vh, 1.35rem);
 }
 
+.workout-bottom .total-time {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
+
+.controls {
+  display: flex;
+  width: min(100%, 18rem);
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+}
+
 .controls .button--primary {
-  width: min(calc(100% - 5rem), 13rem);
+  width: min(calc(80% - 4rem), 10.4rem);
   min-height: 2.65rem;
   padding: 0.55rem 1.25rem;
   border: 1px solid var(--accent);
@@ -1167,6 +1190,10 @@ h1 {
     max-width: 36rem;
     margin-inline: auto;
   }
+
+  .controls .button--primary {
+    width: 12rem;
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1207,6 +1234,22 @@ h1 {
 }
 
 @media (max-width: 30rem) {
+  .workout-bottom {
+    display: grid;
+    grid-template-columns: 4.75rem minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .workout-bottom .total-time {
+    position: static;
+    min-width: 0;
+    transform: none;
+  }
+
+  .workout-bottom .controls {
+    width: 100%;
+  }
+
   .exercise-form__actions {
     grid-template-columns: 1fr 1fr;
   }
@@ -1220,13 +1263,15 @@ h1 {
 }
 
 @media (max-height: 45rem) and (max-width: 47.99rem) {
-  .app-header {
+  .app-header,
+  body:has(#workout-view:not([hidden])) .app-header {
     margin-bottom: 1rem;
   }
 
   .timer-stage {
     --timer-size: min(50vw, 14rem);
-    margin-block: 1rem;
+    margin-top: 1.4rem;
+    margin-bottom: 2rem;
   }
 
   .timer-value--exercise {
