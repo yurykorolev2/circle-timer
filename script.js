@@ -43,6 +43,7 @@ const elements = {
   restTimeLeft: document.querySelector("#rest-time-left"),
   totalTimeLeft: document.querySelector("#total-time-left"),
   transitionSound: document.querySelector("#transition-sound"),
+  restTransitionSound: document.querySelector("#rest-transition-sound"),
 };
 
 const TICK_RATE = 100;
@@ -345,6 +346,7 @@ let hasStarted = false;
 let lastTickTimestamp = 0;
 let timerId = null;
 let isAudioReady = false;
+let isRestAudioReady = false;
 let isAudioSessionConfigured = false;
 let screenWakeLock = null;
 let isWakeLockRequestPending = false;
@@ -365,7 +367,40 @@ function configureAmbientAudioSession() {
   }
 }
 
+function prepareRestTransitionSound() {
+  if (isRestAudioReady) {
+    return;
+  }
+
+  configureAmbientAudioSession();
+  elements.restTransitionSound.muted = true;
+  const playRequest = elements.restTransitionSound.play();
+
+  if (playRequest !== undefined) {
+    playRequest
+      .then(() => {
+        elements.restTransitionSound.pause();
+        elements.restTransitionSound.currentTime = 0;
+        elements.restTransitionSound.muted = false;
+        elements.restTransitionSound.volume = 0.55;
+        isRestAudioReady = true;
+      })
+      .catch(() => {
+        elements.restTransitionSound.muted = false;
+      });
+    return;
+  }
+
+  elements.restTransitionSound.pause();
+  elements.restTransitionSound.currentTime = 0;
+  elements.restTransitionSound.muted = false;
+  elements.restTransitionSound.volume = 0.55;
+  isRestAudioReady = true;
+}
+
 function prepareAudio() {
+  prepareRestTransitionSound();
+
   if (isAudioReady) {
     return;
   }
@@ -406,6 +441,20 @@ function playTransitionDing() {
     .play()
     .then(() => {
       isAudioReady = true;
+    })
+    .catch(() => {});
+}
+
+function playRestTransitionSound() {
+  configureAmbientAudioSession();
+  elements.restTransitionSound.pause();
+  elements.restTransitionSound.currentTime = 0;
+  elements.restTransitionSound.muted = false;
+  elements.restTransitionSound.volume = 0.55;
+  elements.restTransitionSound
+    .play()
+    .then(() => {
+      isRestAudioReady = true;
     })
     .catch(() => {});
 }
@@ -859,7 +908,11 @@ function playTransitionSoundBeforeBoundary(timeApplied) {
     phaseTimeLeft > 0 &&
     timeAfterUpdate <= TRANSITION_SOUND_LEAD
   ) {
-    playTransitionDing();
+    if (phase === "exercise") {
+      playRestTransitionSound();
+    } else {
+      playTransitionDing();
+    }
     hasPlayedTransitionSound = true;
   }
 }
@@ -941,6 +994,7 @@ function startWorkout() {
 
 function togglePause() {
   if (!hasStarted) {
+    prepareRestTransitionSound();
     playTransitionDing();
     hasStarted = true;
     isPaused = false;
