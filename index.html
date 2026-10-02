@@ -19,25 +19,40 @@
           <span class="brand-mark" aria-hidden="true"></span>
           <span>Circle Timer</span>
         </a>
-        <span class="routine-label" id="routine-label">—</span>
-        <div class="workout-actions">
+        <div class="header-tools">
+          <span class="routine-label" id="routine-label">—</span>
           <button
-            class="button workout-info-button"
-            id="workout-info-button"
+            class="header-icon-button settings-button"
+            id="settings-button"
             type="button"
-            aria-label="Показать описание упражнения"
-            aria-controls="workout-description"
-            aria-expanded="false"
+            aria-label="Настройки звука"
+            aria-haspopup="dialog"
+            aria-controls="settings-dialog"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <circle cx="12" cy="12" r="9"></circle>
-              <path d="M12 11v6"></path>
-              <path d="M12 7.5h.01"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V20.3h-3v-.08a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7 15a1.7 1.7 0 0 0-1.56-1.03h-.08v-3h.08A1.7 1.7 0 0 0 7 9.94a1.7 1.7 0 0 0-.34-1.88L6.6 8l2.12-2.12.06.06a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 11.7 4.7v-.08h3v.08a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06L19.8 8l-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.56 1.03h.08v3h-.08A1.7 1.7 0 0 0 19.4 15Z"></path>
             </svg>
           </button>
-          <button class="button button--stop workout-stop" id="stop-button" type="button">
-            СТОП
-          </button>
+          <div class="workout-actions">
+            <button
+              class="button workout-info-button"
+              id="workout-info-button"
+              type="button"
+              aria-label="Показать описание упражнения"
+              aria-controls="workout-description"
+              aria-expanded="false"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 11v6"></path>
+                <path d="M12 7.5h.01"></path>
+              </svg>
+            </button>
+            <button class="button button--stop workout-stop" id="stop-button" type="button">
+              СТОП
+            </button>
+          </div>
         </div>
       </header>
 
@@ -235,6 +250,42 @@
           </button>
           <button class="button button--primary" id="reset-dialog-confirm" type="button">
             Да, восстановить
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog class="exercise-dialog settings-dialog" id="settings-dialog" aria-labelledby="settings-dialog-title">
+      <div class="settings-dialog__content">
+        <div class="exercise-dialog__header">
+          <h2 id="settings-dialog-title">Настройки звука</h2>
+          <button class="dialog-close" id="settings-dialog-close" type="button" aria-label="Закрыть">
+            ×
+          </button>
+        </div>
+
+        <label class="form-field" for="main-sound-select">
+          <span>Основной звук</span>
+          <select id="main-sound-select">
+            <option value="bamboo">Bamboo</option>
+            <option value="bell">Bell</option>
+            <option value="pulse">Pulse</option>
+            <option value="transition-ding">Transition Ding</option>
+          </select>
+        </label>
+
+        <label class="form-field sound-volume-field" for="sound-volume">
+          <span>Громкость таймера</span>
+          <output id="sound-volume-value" for="sound-volume">55%</output>
+          <input id="sound-volume" type="range" min="0" max="100" step="1" value="55">
+        </label>
+
+        <div class="settings-dialog__actions">
+          <button class="button button--secondary" id="sound-preview-button" type="button">
+            Прослушать
+          </button>
+          <button class="button button--primary" id="settings-dialog-done" type="button">
+            Готово
           </button>
         </div>
       </div>
