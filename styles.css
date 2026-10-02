@@ -103,6 +103,50 @@ button {
   font-weight: 650;
 }
 
+.header-tools {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.header-icon-button {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #737b72;
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.header-icon-button:hover {
+  background: rgb(127 184 216 / 6%);
+  color: var(--accent);
+}
+
+.header-icon-button:focus {
+  outline: none;
+}
+
+.header-icon-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.header-icon-button svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.45;
+}
+
 body:has(#workout-view:not([hidden])) .routine-label {
   display: none;
 }
@@ -614,6 +658,59 @@ h1 {
   width: min(calc(100% - 2rem), 27rem);
 }
 
+.settings-dialog {
+  width: min(calc(100% - 2rem), 25rem);
+}
+
+.settings-dialog__content {
+  display: grid;
+  gap: 1.15rem;
+  padding: 1.25rem;
+}
+
+.settings-dialog__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 0.15rem;
+}
+
+.form-field select {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.7rem 2.25rem 0.7rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 0.8rem;
+  background: var(--surface-light);
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 450;
+}
+
+.sound-volume-field {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.sound-volume-field output {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.sound-volume-field input[type="range"] {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-height: 1.5rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .reset-dialog__content {
   display: grid;
   gap: 1rem;
@@ -684,12 +781,14 @@ h1 {
 }
 
 .dialog-close:focus,
+.form-field select:focus,
 .form-field input:focus,
 .form-field textarea:focus {
   outline: none;
 }
 
 .dialog-close:focus-visible,
+.form-field select:focus-visible,
 .form-field input:focus-visible,
 .form-field textarea:focus-visible {
   outline: 2px solid var(--accent);

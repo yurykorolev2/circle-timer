@@ -10,6 +10,14 @@ const elements = {
   exerciseList: document.querySelector("#exercise-list"),
   appVersion: document.querySelector("#app-version"),
   routineLabel: document.querySelector("#routine-label"),
+  settingsButton: document.querySelector("#settings-button"),
+  settingsDialog: document.querySelector("#settings-dialog"),
+  settingsDialogClose: document.querySelector("#settings-dialog-close"),
+  settingsDialogDone: document.querySelector("#settings-dialog-done"),
+  mainSoundSelect: document.querySelector("#main-sound-select"),
+  soundVolume: document.querySelector("#sound-volume"),
+  soundVolumeValue: document.querySelector("#sound-volume-value"),
+  soundPreviewButton: document.querySelector("#sound-preview-button"),
   addExerciseButton: document.querySelector("#add-exercise-button"),
   resetExercisesButton: document.querySelector("#reset-exercises-button"),
   resetDialog: document.querySelector("#reset-dialog"),
@@ -53,13 +61,54 @@ const TICK_RATE = 100;
 const TRANSITION_SOUND_LEAD = 300;
 const EXERCISES_STORAGE_KEY = "circle-timer.exercises.v1";
 const DESCRIPTION_VISIBILITY_STORAGE_KEY = "circle-timer.description-visible";
+const AUDIO_SETTINGS_STORAGE_KEY = "circle-timer.audio-settings.v1";
 const PAUSE_SEQUENCE_MIGRATION_KEY = "circle-timer.migration.pause-sequence.v1";
 const PAUSE_CORRECTION_MIGRATION_KEY = "circle-timer.migration.pause-correction.v1";
+const DEFAULT_AUDIO_SETTINGS = Object.freeze({
+  mainSound: "bamboo",
+  volume: 0.55,
+});
+const SOUND_OPTIONS = Object.freeze({
+  bamboo: "assets/sounds/Bamboo.mp3",
+  bell: "assets/sounds/Bell.mp3",
+  pulse: "assets/sounds/Pulse.mp3",
+  "transition-ding": "assets/sounds/transition-ding.mp3",
+});
+const REST_SOUND_KEY = "transition-ding";
 const PAUSE_SEQUENCE = [3, 3, 6, 5, 5, 5, 4, 4, 4, 6, 5];
 const AIRPLANE_PREVIOUS_DESCRIPTION = "Поднять руки в стороны до горизонтали. С усилием отвести их назад, стараясь свести лопатки. Удерживать напряжение между лопатками. Выполнить также с наклоном корпуса в обе стороны.";
 const AIRPLANE_SINGLE_LINE_DESCRIPTION = "Поднять руки в стороны до горизонтали. С усилием отвести их назад, стараясь свести лопатки. Удерживать напряжение между лопатками. Выполнить 3 раза с горизонтальным расположением, затем по 2 раза с наклонным в обе стороны.";
 const AIRPLANE_FOUR_LINE_DESCRIPTION = "Поднять руки в стороны до горизонтали.\nС усилием отвести их назад, стараясь свести лопатки.\nУдерживать напряжение между лопатками.\nВыполнить 3 раза с горизонтальным расположением, затем по 2 раза с наклонным в обе стороны.";
 const AIRPLANE_DESCRIPTION = "Поднять руки в стороны до горизонтали.\nС усилием отвести их назад, стараясь свести лопатки.\nУдерживать напряжение между лопатками.\nВыполнить 3 раза с горизонтальным расположением,\nзатем по 2 раза с наклонным в обе стороны.";
+
+function loadAudioSettings() {
+  try {
+    const storedSettings = JSON.parse(localStorage.getItem(AUDIO_SETTINGS_STORAGE_KEY));
+    const mainSound = Object.prototype.hasOwnProperty.call(SOUND_OPTIONS, storedSettings?.mainSound)
+      ? storedSettings.mainSound
+      : DEFAULT_AUDIO_SETTINGS.mainSound;
+    const storedVolume = Number(storedSettings?.volume);
+    const volume = Number.isFinite(storedVolume)
+      ? Math.min(1, Math.max(0, storedVolume))
+      : DEFAULT_AUDIO_SETTINGS.volume;
+
+    return { mainSound, volume };
+  } catch (error) {
+    return { ...DEFAULT_AUDIO_SETTINGS };
+  }
+}
+
+function persistAudioSettings() {
+  try {
+    localStorage.setItem(AUDIO_SETTINGS_STORAGE_KEY, JSON.stringify(audioSettings));
+  } catch (error) {
+    console.warn("Не удалось сохранить настройки звука", error);
+  }
+}
+
+function getSoundPath(soundKey) {
+  return SOUND_OPTIONS[soundKey] ?? SOUND_OPTIONS[DEFAULT_AUDIO_SETTINGS.mainSound];
+}
 
 function calculateTotalWorkoutTime() {
   return exercises.reduce(
@@ -356,6 +405,11 @@ let isWakeLockRequestPending = false;
 let hasPlayedTransitionSound = false;
 let isDescriptionVisible = loadDescriptionVisibilityPreference();
 let editingExerciseIndex = null;
+let audioSettings = loadAudioSettings();
+let audioContext = null;
+let audioGainNode = null;
+const audioBuffers = new Map();
+const audioBufferPromises = new Map();
 
 function configureAmbientAudioSession() {
   if (isAudioSessionConfigured || !("audioSession" in navigator)) {
@@ -370,96 +424,203 @@ function configureAmbientAudioSession() {
   }
 }
 
+function ensureAudioContext() {
+  if (audioContext !== null) {
+    return audioContext;
+  }
+
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+  if (!AudioContextClass) {
+    return null;
+  }
+
+  audioContext = new AudioContextClass();
+  audioGainNode = audioContext.createGain();
+  audioGainNode.gain.value = audioSettings.volume;
+  audioGainNode.connect(audioContext.destination);
+  return audioContext;
+}
+
+function updateAudioVolume() {
+  elements.transitionSound.volume = audioSettings.volume;
+  elements.restTransitionSound.volume = audioSettings.volume;
+
+  if (audioGainNode !== null && audioContext !== null) {
+    audioGainNode.gain.setValueAtTime(audioSettings.volume, audioContext.currentTime);
+  }
+}
+
+function applySelectedMainSound() {
+  const soundPath = getSoundPath(audioSettings.mainSound);
+
+  if (elements.transitionSound.getAttribute("src") !== soundPath) {
+    elements.transitionSound.src = soundPath;
+    elements.transitionSound.load();
+    isAudioReady = false;
+  }
+}
+
+function syncAudioSettingsControls() {
+  elements.mainSoundSelect.value = audioSettings.mainSound;
+  elements.soundVolume.value = String(Math.round(audioSettings.volume * 100));
+  elements.soundVolumeValue.value = `${Math.round(audioSettings.volume * 100)}%`;
+}
+
+async function loadAudioBuffer(soundKey) {
+  if (audioBuffers.has(soundKey)) {
+    return audioBuffers.get(soundKey);
+  }
+
+  if (audioBufferPromises.has(soundKey)) {
+    return audioBufferPromises.get(soundKey);
+  }
+
+  const context = ensureAudioContext();
+
+  if (context === null) {
+    throw new Error("Web Audio API не поддерживается");
+  }
+
+  const loadPromise = fetch(getSoundPath(soundKey))
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Не удалось загрузить звук: ${response.status}`);
+      }
+
+      return response.arrayBuffer();
+    })
+    .then((audioData) => context.decodeAudioData(audioData))
+    .then((buffer) => {
+      audioBuffers.set(soundKey, buffer);
+      audioBufferPromises.delete(soundKey);
+      return buffer;
+    })
+    .catch((error) => {
+      audioBufferPromises.delete(soundKey);
+      throw error;
+    });
+
+  audioBufferPromises.set(soundKey, loadPromise);
+  return loadPromise;
+}
+
+async function prepareWebAudio() {
+  const context = ensureAudioContext();
+
+  if (context === null) {
+    return;
+  }
+
+  if (context.state === "suspended") {
+    await context.resume();
+  }
+
+  await Promise.allSettled([
+    loadAudioBuffer(audioSettings.mainSound),
+    loadAudioBuffer(REST_SOUND_KEY),
+  ]);
+}
+
+function prepareFallbackAudioElement(element, onReady) {
+  element.muted = true;
+  const playRequest = element.play();
+
+  const finishPreparation = () => {
+    element.pause();
+    element.currentTime = 0;
+    element.muted = false;
+    element.volume = audioSettings.volume;
+    onReady();
+  };
+
+  if (playRequest !== undefined) {
+    playRequest.then(finishPreparation).catch(() => {
+      element.muted = false;
+    });
+    return;
+  }
+
+  finishPreparation();
+}
+
 function prepareRestTransitionSound() {
   if (isRestAudioReady) {
     return;
   }
 
   configureAmbientAudioSession();
-  elements.restTransitionSound.muted = true;
-  const playRequest = elements.restTransitionSound.play();
-
-  if (playRequest !== undefined) {
-    playRequest
-      .then(() => {
-        elements.restTransitionSound.pause();
-        elements.restTransitionSound.currentTime = 0;
-        elements.restTransitionSound.muted = false;
-        elements.restTransitionSound.volume = 0.55;
-        isRestAudioReady = true;
-      })
-      .catch(() => {
-        elements.restTransitionSound.muted = false;
-      });
-    return;
-  }
-
-  elements.restTransitionSound.pause();
-  elements.restTransitionSound.currentTime = 0;
-  elements.restTransitionSound.muted = false;
-  elements.restTransitionSound.volume = 0.55;
-  isRestAudioReady = true;
+  prepareFallbackAudioElement(elements.restTransitionSound, () => {
+    isRestAudioReady = true;
+  });
 }
 
 function prepareAudio() {
+  configureAmbientAudioSession();
+  applySelectedMainSound();
+  updateAudioVolume();
   prepareRestTransitionSound();
+  void prepareWebAudio();
 
   if (isAudioReady) {
     return;
   }
 
-  configureAmbientAudioSession();
-  elements.transitionSound.muted = true;
-  const playRequest = elements.transitionSound.play();
+  prepareFallbackAudioElement(elements.transitionSound, () => {
+    isAudioReady = true;
+  });
+}
 
-  if (playRequest !== undefined) {
-    playRequest
-      .then(() => {
-        elements.transitionSound.pause();
-        elements.transitionSound.currentTime = 0;
-        elements.transitionSound.muted = false;
-        elements.transitionSound.volume = 0.55;
-        isAudioReady = true;
-      })
-      .catch(() => {
-        elements.transitionSound.muted = false;
-      });
-    return;
+function playFallbackSound(element, onReady) {
+  element.pause();
+  element.currentTime = 0;
+  element.muted = false;
+  element.volume = audioSettings.volume;
+  element.play().then(onReady).catch(() => {});
+}
+
+async function playSoundWithWebAudio(soundKey) {
+  const context = ensureAudioContext();
+
+  if (context === null) {
+    return false;
   }
 
-  elements.transitionSound.pause();
-  elements.transitionSound.currentTime = 0;
-  elements.transitionSound.muted = false;
-  elements.transitionSound.volume = 0.55;
-  isAudioReady = true;
+  if (context.state === "suspended") {
+    await context.resume();
+  }
+
+  const buffer = await loadAudioBuffer(soundKey);
+  const source = context.createBufferSource();
+  source.buffer = buffer;
+  source.connect(audioGainNode);
+  source.start();
+  return true;
+}
+
+function playAppSound(soundKey, fallbackElement, onFallbackReady) {
+  configureAmbientAudioSession();
+  playSoundWithWebAudio(soundKey)
+    .then((wasPlayed) => {
+      if (!wasPlayed) {
+        playFallbackSound(fallbackElement, onFallbackReady);
+      }
+    })
+    .catch(() => {
+      playFallbackSound(fallbackElement, onFallbackReady);
+    });
 }
 
 function playTransitionDing() {
-  configureAmbientAudioSession();
-  elements.transitionSound.pause();
-  elements.transitionSound.currentTime = 0;
-  elements.transitionSound.muted = false;
-  elements.transitionSound.volume = 0.55;
-  elements.transitionSound
-    .play()
-    .then(() => {
-      isAudioReady = true;
-    })
-    .catch(() => {});
+  playAppSound(audioSettings.mainSound, elements.transitionSound, () => {
+    isAudioReady = true;
+  });
 }
 
 function playRestTransitionSound() {
-  configureAmbientAudioSession();
-  elements.restTransitionSound.pause();
-  elements.restTransitionSound.currentTime = 0;
-  elements.restTransitionSound.muted = false;
-  elements.restTransitionSound.volume = 0.55;
-  elements.restTransitionSound
-    .play()
-    .then(() => {
-      isRestAudioReady = true;
-    })
-    .catch(() => {});
+  playAppSound(REST_SOUND_KEY, elements.restTransitionSound, () => {
+    isRestAudioReady = true;
+  });
 }
 
 function shouldKeepScreenAwake() {
@@ -671,6 +832,42 @@ function openResetDialog() {
 
 function closeResetDialog() {
   elements.resetDialog.close();
+}
+
+function openSettingsDialog() {
+  syncAudioSettingsControls();
+  configureAmbientAudioSession();
+  void prepareWebAudio();
+  elements.settingsDialog.showModal();
+  elements.mainSoundSelect.focus();
+}
+
+function closeSettingsDialog() {
+  elements.settingsDialog.close();
+}
+
+function updateMainSoundSetting() {
+  if (!Object.prototype.hasOwnProperty.call(SOUND_OPTIONS, elements.mainSoundSelect.value)) {
+    return;
+  }
+
+  audioSettings.mainSound = elements.mainSoundSelect.value;
+  applySelectedMainSound();
+  persistAudioSettings();
+  void prepareWebAudio();
+}
+
+function updateVolumeSetting() {
+  audioSettings.volume = Number(elements.soundVolume.value) / 100;
+  elements.soundVolumeValue.value = `${elements.soundVolume.value}%`;
+  updateAudioVolume();
+  persistAudioSettings();
+}
+
+function previewMainSound() {
+  configureAmbientAudioSession();
+  updateAudioVolume();
+  playTransitionDing();
 }
 
 async function restoreDefaultExercises() {
@@ -1072,6 +1269,12 @@ elements.pauseButton.addEventListener("click", togglePause);
 elements.previousExerciseButton.addEventListener("click", () => navigateExercise(-1));
 elements.nextExerciseButton.addEventListener("click", () => navigateExercise(1));
 elements.workoutInfoButton.addEventListener("click", toggleWorkoutDescription);
+elements.settingsButton.addEventListener("click", openSettingsDialog);
+elements.settingsDialogClose.addEventListener("click", closeSettingsDialog);
+elements.settingsDialogDone.addEventListener("click", closeSettingsDialog);
+elements.mainSoundSelect.addEventListener("change", updateMainSoundSetting);
+elements.soundVolume.addEventListener("input", updateVolumeSetting);
+elements.soundPreviewButton.addEventListener("click", previewMainSound);
 elements.stopButton.addEventListener("click", stopWorkout);
 elements.repeatButton.addEventListener("click", startWorkout);
 elements.addExerciseButton.addEventListener("click", () => openExerciseDialog());
@@ -1125,4 +1328,7 @@ document.addEventListener("visibilitychange", () => {
 });
 
 elements.appVersion.textContent = `v${APP_VERSION}`;
+applySelectedMainSound();
+updateAudioVolume();
+syncAudioSettingsControls();
 loadExercises();
